@@ -16,9 +16,9 @@ from kivy.uix.button import Button
 from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.image import Image
-from kivy.uix.slider import Slider
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
+from kivy.uix.label import Label
 
 import RPi.GPIO as GPIO
 
@@ -34,7 +34,6 @@ GPIO.setup(shelfPin, GPIO.OUT)
 GPIO.output(shelfPin, GPIO.LOW)
 GPIO.setup(counterPin, GPIO.OUT)
 GPIO.output(counterPin, GPIO.LOW)
-GPIO.setup(tempPin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 # Define some helper functions:
 
@@ -57,37 +56,33 @@ def read_temp():
 		temp_f = temp_c * 9.0 / 5.0 + 32.0
 		return temp_f
 
-# This callback will be bound to the LED toggle and Beep button:
+# This callback will be bound to the toggle buttons and temperature display:
 def press_callback(obj):
 	print("Button pressed,", obj.text)
-	if obj.text == 'BEEP!':
-		# turn on the beeper:
-		GPIO.output(beepPin, GPIO.HIGH)
-		# schedule it to turn off:
-		Clock.schedule_once(buzzer_off, .1)
-	if obj.text == 'LED':
+	if obj.text == 'COUNTER':
 		if obj.state == "down":
 			print ("button on")
-			GPIO.output(ledPin, GPIO.HIGH)
+			GPIO.output(counterPin, GPIO.HIGH)
 		else:
 			print ("button off")
-			GPIO.output(ledPin, GPIO.LOW)
+			GPIO.output(counterPin, GPIO.LOW)
 
-def buzzer_off(dt):
-	GPIO.output(beepPin, GPIO.LOW)
+    if obj.text == 'SHELF':
+		if obj.state == "down":
+			print ("button on")
+			GPIO.output(shelfPin, GPIO.HIGH)
+		else:
+			print ("button off")
+			GPIO.output(shelfPin, GPIO.LOW)
 
-# Toggle the flashing LED according to the speed global
-# This will need better implementation
-def flash(dt):
-	global speed
-	GPIO.output(flashLedPin, not GPIO.input(flashLedPin))
-	Clock.schedule_once(flash, 1.0/speed)
+	if obj.text == 'COUCH':
+		if obj.state == "down":
+			print ("button on")
+			GPIO.output(couchPin, GPIO.HIGH)
+		else:
+			print ("button off")
+			GPIO.output(couchPin, GPIO.LOW)
 
-# This is called when the slider is updated:
-def update_speed(obj, value):
-	global speed
-	print("Updating speed to:" + str(obj.value))
-	speed = obj.value
 
 # Modify the Button Class to update according to GPIO input:
 class InputButton(Button):
@@ -115,23 +110,17 @@ class MyApp(App):
 		Clock.schedule_interval(inputDisplay.update, 1.0/10.0)
 
 		# Create the rest of the UI objects (and bind them to callbacks, if necessary):
-		outputControl = ToggleButton(text="LED")
+		outputControl = ToggleButton(text="COUCH")
 		outputControl.bind(on_press=press_callback)
-		beepButton = Button(text="BEEP!")
+		beepButton = Button(text="COUNTER")
 		beepButton.bind(on_press=press_callback)
-		wimg = Image(source='logo.png')
-		speedSlider = Slider(orientation='vertical', min=1, max=30, value=speed)
-		speedSlider.bind(on_touch_down=update_speed, on_touch_move=update_speed)
+
 
 		# Add the UI elements to the layout:
-		layout.add_widget(wimg)
 		layout.add_widget(inputDisplay)
 		layout.add_widget(outputControl)
 		layout.add_widget(beepButton)
-		layout.add_widget(speedSlider)
 
-		# Start flashing the LED
-		Clock.schedule_once(flash, 1.0/speed)
 
 		return layout
 
